@@ -1,8 +1,11 @@
 CFLAGS = -Og -g -pipe -march=native -isystem .
 
-LIB_SRC = common/lib.c
-LIB_OBJ = ${LIB_SRC:.c=.o}
+LIB_SRC = common/lib.c \
+					common/protocol.c
+
 SERVER_SRC = common/server.c
+
+LIB_OBJ = ${LIB_SRC:.c=.o}
 SERVER_OBJ = ${SERVER_SRC:.c=.o}
 
 all: smdb-test smdb-server
@@ -13,7 +16,7 @@ all: smdb-test smdb-server
 ${LIB_OBJ}: smdb.h
 
 libsmdb.a: ${LIB_OBJ}
-	ar rcs $@ $<
+	ar rcs $@ $^
 
 smdb-server: ${SERVER_OBJ}
 	${CC} ${CFLAGS} -o $@ $<

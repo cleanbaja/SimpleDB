@@ -4,28 +4,71 @@
 #include <stdio.h>
 #include <errno.h>
 #include <getopt.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 
+#include "protocol.h"
+
 #define MAX_FDS 128
 
-int sockfd;
+struct pollfd fds[MAX_FDS];
+int sockfd, fdcnt = 0;
+char *store;
 
 void usage() {
   puts("USAGE: smdb-server [-p path to socket] [-h]");
 }
 
+void fd_add(int fd) {
+  fds[fdcnt].fd = fd;
+  fds[fdcnt].events = POLLIN;
+  fdcnt++;
+}
+
+void fd_del(int index) {
+  close(fds[index].fd);
+  fds[index].fd = -1;
+
+  // reclaim all the unused fds into a linear array.
+  for (int i = 0; i < fdcnt; i++) {
+    if (fds[i].fd == -1) {
+      for(int j = i; j < fdcnt - 1; j++) {
+        fds[j].fd = fds[j + 1].fd;
+      }
+
+      i--;
+      fdcnt--;
+    }
+  }
+}
+
+int handle_packet(struct packet *pkt, int fd) {
+  struct packet result;
+  int status;
+
+  memset(&result, 0, sizeof(struct packet));
+  
+  if (pkt->type == PACKET_GET) {
+    result.type = PACKET_GET;
+    strcpy(result.value, store);
+  } else {
+    result.type = PACKET_SET;
+    store = malloc(strlen(pkt->value) + 1);
+    strcpy(store, pkt->value);
+  }
+
+  status = send(fd, &result, sizeof(result), 0);
+  return status;
+}
+
 void serve() {
-  struct pollfd fds[MAX_FDS];
-  char buffer[512];
+  struct packet pkt;
   int status, new_conn, connoff;
-  int on, cur, fdcnt, compress;
+  int on, cur;
 
-  memset(fds, 0, sizeof(fds));
-
-  fds[0].fd = sockfd;
-  fds[0].events = POLLIN;
-  on = fdcnt = 1;
+  fd_add(sockfd);
+  on = 1;
   
   do {
     // 1 sec timeout
@@ -58,16 +101,14 @@ void serve() {
             break;
           }
 
-          fds[fdcnt].fd = new_conn;
-          fds[fdcnt].events = POLLIN;
-          fdcnt++;
+          fd_add(new_conn);
         } while (new_conn != -1); 
       } else {
         connoff = 0;
 
         // drain the incoming packets.
-        do {
-          status = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+        while(1) {
+          status = recv(fds[i].fd, &pkt, sizeof(pkt), 0);
           if (status < 0 && errno != EWOULDBLOCK) {
             perror("recv");
             connoff = 1;
@@ -80,33 +121,15 @@ void serve() {
             break;
           }
 
-          // handle packet here
-          break;
-        } while (1);
+          if (handle_packet(&pkt, fds[i].fd) < 0) {
+            connoff = 1;
+            break;
+          }
+        }
 
         // close the connection if needed.
-        if (connoff) {
-          close(fds[i].fd);
-          fds[i].fd = -1;
-
-          compress = 1;
-        }
-      }
-    }
-
-    if (compress) {
-      compress = 0;
-
-      // compress all the unused fds into a linear array.
-      for (int i = 0; i < fdcnt; i++) {
-        if (fds[i].fd == -1) {
-          for(int j = i; j < fdcnt - 1; j++) {
-            fds[j].fd = fds[j + 1].fd;
-          }
-          
-          i--;
-          fdcnt--;
-        }
+        if (connoff)
+          fd_del(i);
       }
     }
   } while (on);
@@ -146,6 +169,21 @@ int main(int argc, char **argv) {
   if (sockfd < 0) {
     perror("socket");
     return 1;
+  }
+
+  status = fcntl(sockfd, F_GETFL, 0);
+  
+  if (status < 0) {
+    perror("fcntl");
+    return 1;
+  }
+  
+  // set socket as non-blocking.
+  status = fcntl(sockfd, F_SETFL, status | O_NONBLOCK);
+
+  if (status < 0) {
+    perror("fcntl");
+    return 0;
   }
 
   addr.sun_family = AF_UNIX;
