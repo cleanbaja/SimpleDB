@@ -271,6 +271,9 @@ main(int argc, char** argv)
   if (diskpath == NULL)
     diskpath = "/var/run/smdb.db";
 
+  // delete the socket, so we don't have bind errors.
+  (void)remove(sockpath);
+
   dbfile = fopen(diskpath, "a+");
   if (dbfile == NULL)
     return 1;
