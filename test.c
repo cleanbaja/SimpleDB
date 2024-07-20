@@ -4,11 +4,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-int main(int argc, char **argv) {
-  smdb_t *db;
+int
+main(int argc, char** argv)
+{
+  smdb_t* db;
   int status;
   char inbuffer[512];
-  
+
   db = smdb_init(NULL);
 
   if (db == NULL) {
@@ -30,7 +32,7 @@ int main(int argc, char **argv) {
     puts("err: strings don't match!");
     goto err;
   }
-  
+
 err:
   smdb_destroy(db);
 }

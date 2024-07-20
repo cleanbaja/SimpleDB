@@ -3,7 +3,8 @@
 
 #include <stddef.h>
 
-enum {
+enum
+{
   SMDB_OK = 0,
   SMDB_NETWORK_ERR = -1,
   SMDB_INVALID_ARGS = -2,
@@ -11,7 +12,8 @@ enum {
   SMDB_FILESYSTEM_ERR = -4,
 };
 
-struct smdb_context {
+struct smdb_context
+{
   int socket_fd;
 };
 
@@ -34,7 +36,8 @@ Return Value:
     Active connection, or NULL if a connection could not be established.
 
 */
-smdb_t *smdb_init(const char *socket_path);
+smdb_t*
+smdb_init(const char* socket_path);
 
 /*
 
@@ -55,7 +58,8 @@ Return Value:
     function will return the specific error code.
 
 */
-int smdb_get(smdb_t *ctx, const char *key, char *buffer, size_t buflen);
+int
+smdb_get(smdb_t* ctx, const char* key, char* buffer, size_t buflen);
 
 /*
 
@@ -66,7 +70,7 @@ Routine Description:
 Arguments:
 
     ctx - valid context object
-    key - string key to insert into the dartabase.
+    key - string key to insert into the database.
     value - string value to insert into the database.
 
 Return Value:
@@ -75,7 +79,8 @@ Return Value:
     function will return the specific error code.
 
 */
-int smdb_set(smdb_t *ctx, const char *key, const char *value);
+int
+smdb_set(smdb_t* ctx, const char* key, const char* value);
 
 /*
 
@@ -93,7 +98,8 @@ Return Value:
     None.
 
 */
-void smdb_destroy(smdb_t *ctx);
+void
+smdb_destroy(smdb_t* ctx);
 
 /*
 
@@ -110,7 +116,7 @@ Return Value:
     String which contains the human readable error code message.
 
 */
-const char *smdb_err_to_str(int err);
-
+const char*
+smdb_err_to_str(int err);
 
 #endif // _SMDB_H_

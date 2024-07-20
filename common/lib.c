@@ -1,29 +1,36 @@
 #include <smdb.h>
 
+#include <stdlib.h>
+#include <unistd.h>
+
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <unistd.h>
-#include <stdlib.h>
 
 #include "protocol.h"
 
-static const char *errcodes[] = {
-    [0] = "SMDB_OK",
-    [1] = "SMDB_NETWORK_ERR",
-    [2] = "SMDB_INVALID_ARGS",
-    [3] = "SMDB_KEY_EXISTS",
-    [4] = "SMDB_FILESYSTEM_ERR",
+static const char* errcodes[] = {
+  [0] = "SMDB_OK",
+  [1] = "SMDB_NETWORK_ERR",
+  [2] = "SMDB_INVALID_ARGS",
+  [3] = "SMDB_KEY_EXISTS",
+  [4] = "SMDB_FILESYSTEM_ERR",
 };
 
-const char *smdb_err_to_str(int err) { return errcodes[abs(err)]; }
+const char*
+smdb_err_to_str(int err)
+{
+  return errcodes[abs(err)];
+}
 
-smdb_t *smdb_init(const char *socket_path) {
-  const char *path;
+smdb_t*
+smdb_init(const char* socket_path)
+{
+  const char* path;
   struct sockaddr_un addr;
-  smdb_t *db;
+  smdb_t* db;
 
   path = socket_path ? socket_path : "/var/run/smdb.sock";
-  db = (smdb_t *)malloc(sizeof(smdb_t));
+  db = (smdb_t*)malloc(sizeof(smdb_t));
 
   if (db == NULL)
     return NULL;
@@ -34,7 +41,7 @@ smdb_t *smdb_init(const char *socket_path) {
   addr.sun_family = AF_UNIX;
   strcpy(addr.sun_path, path);
 
-  if (connect(db->socket_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+  if (connect(db->socket_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
     goto err;
 
   return db;
@@ -48,17 +55,21 @@ err:
   return NULL;
 }
 
-void smdb_destroy(smdb_t *ctx) {
+void
+smdb_destroy(smdb_t* ctx)
+{
   if (ctx != NULL) {
     close(ctx->socket_fd);
     free(ctx);
   }
 }
 
-int smdb_get(smdb_t *ctx, const char *key, char *buffer, size_t buflen) {
+int
+smdb_get(smdb_t* ctx, const char* key, char* buffer, size_t buflen)
+{
   struct packet in, out;
   int len;
-  
+
   if (ctx == NULL || key == NULL || buffer == NULL || buflen == 0)
     return SMDB_INVALID_ARGS;
 
@@ -73,8 +84,8 @@ int smdb_get(smdb_t *ctx, const char *key, char *buffer, size_t buflen) {
   if (out.status != SMDB_OK)
     return out.status;
 
-  len = strlen((char *)out.value);
-  
+  len = strlen((char*)out.value);
+
   if (len > buflen)
     return len;
 
@@ -82,9 +93,11 @@ int smdb_get(smdb_t *ctx, const char *key, char *buffer, size_t buflen) {
   return SMDB_OK;
 }
 
-int smdb_set(smdb_t *ctx, const char *key, const char *value) {
+int
+smdb_set(smdb_t* ctx, const char* key, const char* value)
+{
   struct packet in, out;
-  
+
   if (ctx == NULL || key == NULL || value == NULL)
     return SMDB_INVALID_ARGS;
 

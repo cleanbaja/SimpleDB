@@ -3,12 +3,14 @@
 
 #include <stdint.h>
 
-enum {
+enum
+{
   PACKET_GET,
   PACKET_SET
 };
 
-struct packet {
+struct packet
+{
   uint8_t type;
   uint8_t status;
 
@@ -16,7 +18,43 @@ struct packet {
   uint8_t value[256];
 };
 
-void ptl_command_get(struct packet *pkt, const char *key);
-void ptl_command_set(struct packet *pkt, const char *key, const char *value);
+/*
+
+Routine Description:
+
+    Builds a client packet for requesting a value.
+
+Arguments:
+
+    pkt - pointer to input packet to populate.
+    key - string key to request value for.
+
+Return Value:
+
+    None.
+
+*/
+void
+ptl_command_get(struct packet* pkt, const char* key);
+
+/*
+
+Routine Description:
+
+    Builds a client packet for setting a value.
+
+Arguments:
+
+    pkt - pointer to input packet to populate.
+    key - string key to set into database.
+    value - string value to set into database.
+
+Return Value:
+
+    None.
+
+*/
+void
+ptl_command_set(struct packet* pkt, const char* key, const char* value);
 
 #endif // _COMMON_PROTOCOL_H_

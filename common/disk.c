@@ -1,14 +1,16 @@
 #include <smdb.h>
 
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "disk.h"
 #include "xxhash.h"
 
 #define STATIC_SEED 0xFA415231A2B4AE12
 
-int dks_get_value(FILE *dbfile, const char *key, char **value) {
+int
+dks_get_value(FILE* dbfile, const char* key, char** value)
+{
   struct dbent dbent;
 
   memset(&dbent, 0, sizeof(struct dbent));
@@ -18,7 +20,7 @@ int dks_get_value(FILE *dbfile, const char *key, char **value) {
   do {
     if (fseek(dbfile, dbent.next, SEEK_SET) < 0)
       return SMDB_FILESYSTEM_ERR;
-    
+
     if (fread(&dbent, sizeof(struct dbent), 1, dbfile) == 0)
       return SMDB_FILESYSTEM_ERR;
   } while (hash != dbent.hash && dbent.next != 0);
@@ -32,10 +34,12 @@ int dks_get_value(FILE *dbfile, const char *key, char **value) {
   return SMDB_OK;
 }
 
-int dks_set_value(FILE *dbfile, const char *key, const char *value) {
+int
+dks_set_value(FILE* dbfile, const char* key, const char* value)
+{
   struct dbent dbent, old_dbent;
   size_t filesize = 0;
-  
+
   memset(&dbent, 0, sizeof(struct dbent));
 
   dbent.hash = XXH64(key, strlen(key), STATIC_SEED);
@@ -63,6 +67,6 @@ int dks_set_value(FILE *dbfile, const char *key, const char *value) {
 
   if (fwrite(&old_dbent, sizeof(struct dbent), 1, dbfile) == 0)
     return SMDB_FILESYSTEM_ERR;
-  
+
   return SMDB_OK;
 }
