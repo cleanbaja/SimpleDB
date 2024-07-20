@@ -18,8 +18,6 @@ int sockfd, fdcnt = 0;
 FILE* dbfile;
 char* store;
 
-
-
 static void
 usage()
 /*
@@ -41,7 +39,7 @@ Return Value:
   puts("USAGE: smdb-server [-p socket path] [-f db path] [-h]");
 }
 
-void
+static void
 fd_add(int fd)
 /*
 
