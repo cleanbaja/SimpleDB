@@ -1,23 +1,24 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/poll.h>
-#include <stdio.h>
 #include <errno.h>
 #include <getopt.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 
+#include "disk.h"
 #include "protocol.h"
 
 #define MAX_FDS 128
 
 struct pollfd fds[MAX_FDS];
 int sockfd, fdcnt = 0;
+FILE *dbfile;
 char *store;
 
 void usage() {
-  puts("USAGE: smdb-server [-p path to socket] [-h]");
+  puts("USAGE: smdb-server [-p socket path] [-f db path] [-h]");
 }
 
 void fd_add(int fd) {
@@ -45,20 +46,28 @@ void fd_del(int index) {
 
 int handle_packet(struct packet *pkt, int fd) {
   struct packet result;
+  char *value;
   int status;
 
+  value = NULL;
+  
   memset(&result, 0, sizeof(struct packet));
   
   if (pkt->type == PACKET_GET) {
     result.type = PACKET_GET;
-    strcpy(result.value, store);
+
+    if ((result.status = dks_get_value(dbfile, pkt->key, &value)) == 0)
+      strcpy(result.value, value);
   } else {
     result.type = PACKET_SET;
-    store = malloc(strlen(pkt->value) + 1);
-    strcpy(store, pkt->value);
+    result.status = dks_set_value(dbfile, pkt->key, pkt->value);
   }
 
   status = send(fd, &result, sizeof(result), 0);
+
+  if (value != NULL)
+    free(value);
+
   return status;
 }
 
@@ -142,18 +151,22 @@ void serve() {
 
 int main(int argc, char **argv) {
   struct sockaddr_un addr;
-  char *sockpath;
+  char *sockpath, *diskpath;
   int status, c;
 
   sockpath = NULL;
+  diskpath = NULL;
 
-  while ((c = getopt(argc, argv, "hp:")) != -1) {
+  while ((c = getopt(argc, argv, "hp:f:")) != -1) {
     switch (c) {
       case 'h':
         usage();
         return 0;
       case 'p':
         sockpath = optarg;
+        break;
+      case 'f':
+        diskpath = optarg;
         break;
       default:
         usage();
@@ -163,6 +176,13 @@ int main(int argc, char **argv) {
 
   if (sockpath == NULL)
     sockpath = "/var/run/smdb.sock";
+
+  if (diskpath == NULL)
+    diskpath = "/var/run/smdb.db";
+
+  dbfile = fopen(diskpath, "a+");
+  if (dbfile == NULL)
+    return 1;
 
   sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
 

@@ -8,6 +8,7 @@ enum {
   SMDB_NETWORK_ERR = -1,
   SMDB_INVALID_ARGS = -2,
   SMDB_KEY_EXISTS = -3,
+  SMDB_FILESYSTEM_ERR = -4,
 };
 
 struct smdb_context {

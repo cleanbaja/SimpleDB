@@ -11,7 +11,8 @@ static const char *errcodes[] = {
     [0] = "SMDB_OK",
     [1] = "SMDB_NETWORK_ERR",
     [2] = "SMDB_INVALID_ARGS",
-    [3] = "SMDB_KEY_EXISTS"
+    [3] = "SMDB_KEY_EXISTS",
+    [4] = "SMDB_FILESYSTEM_ERR",
 };
 
 const char *smdb_err_to_str(int err) { return errcodes[abs(err)]; }
